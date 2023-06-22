@@ -36,7 +36,7 @@ Ethan Meltzer
 - Initial research focused on expirimental properties, simulations of internal structure were unoptimized and worth further investigation
 - Worth researching: if we're going to put this into a solar panel, we should know its structure!
 
-![bg left:40%](Cu2AgBiI6_SEM.png)
+![bg left:40% 95%](Cu2AgBiI6_SEM.png)
 
 <!-- footer: Journal of the American Chemical Society 2021 143 (10), 3983-3992 DOI: 10.1021/jacs.1c00495 -->
 
