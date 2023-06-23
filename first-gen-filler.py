@@ -107,7 +107,7 @@ for i in range(args.number):
     vasp_file.write(f"{i}\n")
     vasp_file.write(lattice_constant)
     vasp_file.writelines(LatticeMatrix)
-    vasp_file.write("{0:3d}{1:3d}{2:3d}{3:3d}\n".format("Ag", "Bi", "Cu", "I"))
+    vasp_file.write("{'Ag':<3}{'Bi':<3}{'Cu':<3}{'I':<3}\n")
     vasp_file.write(f"{AG_OCC:3d}{BI_OCC:3d}{CU_OCC:3d}{I_AV_OCC:3d}\n")
     vasp_file.writelines(AgOcc)
     vasp_file.writelines(BiOcc)
