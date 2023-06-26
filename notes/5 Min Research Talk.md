@@ -80,15 +80,13 @@ Ethan Meltzer -- Oberlin College Dept. of Comp. Sci.
     width: 50%;
     right: 5%;
     top: 20%;
-    font-size: 0.88rem;
   }
 </style>
 
 ## Background
 
 - Lead-free semiconductor synthesized at University of Liverpool in 2021 has promising applications in photovoltaics: near-onset absorption coeff. of $1.0 \times 10^5\text{ cm}^{-1}$*, order of magnitude greater than $\text{Si**, CdTe***}$
-- Initial research focus on electronic and optical properties, structural model simulations done using VASP were not sufficient to determine minimal energy cell configurations (250 VASP calculations for 4 models).
-- Our research expands on the simulation work that they began at much larger computational scale (order $10^5$ models in first of many generations)
+- Initial research focus on electronic and optical properties, did 250 VASP calculations for 4 configurations, we will be looking at order $10^5$ configs in first gen. of simulations
 
 ![SEM](Cu2AgBiI6_SEM.png)
 
@@ -102,7 +100,7 @@ Ethan Meltzer -- Oberlin College Dept. of Comp. Sci.
 
 ![bg 80%](./Cu2AgBiI6_slide.png)
 
-<!-- footer: "figs. Harry C. Sansom et al.\nJournal of the American Chemical Society 2021 143 (10), 3983-3992 DOI: 10.1021/jacs.1c00495"-->
+<!-- footer: ""-->
 
 <!-- Explain what we're looking at! Pink enclosing large tricolor circles => Iodine in an octahedra around either a silver, bismuth, or vacancy. White and blue PAC-MAN is ~1/6 Cu, ~5/6 vacancy -->
 <!-- Mention these figures from initial paper -->
@@ -207,12 +205,12 @@ DOI: 10.1021/jacs.1c00495
 - Some correlation between crystal symmetry/regularity and lattice energy in similar materials, many exceptions
 - Skewing the first generation of configurations towards highly symmetric (high space group) configurations could lead to a faster convergence on a minimum.
 - Accomplish this by binning the randomly generated first generation
-  - Each bin is equal size but
+  - Each bin is equal size
   - Number of space groups represented in each bin varies
 
 ![bg right:35% 90%](./space_group_ex.png)
 
-<!-- footer: "" -->
+<!-- footer: "Fig. from active research in Khare group" -->
 
 ---
 <style scoped>
@@ -227,3 +225,5 @@ DOI: 10.1021/jacs.1c00495
 - Mutation: A few occupied atomic sites in the child configuration will be swapped with ones chosen at random, most often resulting in an atom switching with a vacancy.
 
 ![bg right:50% 80%](./ga-convergence.png)
+
+<!-- footer: "" -->
