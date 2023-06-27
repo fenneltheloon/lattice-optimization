@@ -21,8 +21,15 @@
 
 import argparse
 import sys
+import os
 import random
+import scipy
+import math
 import pymatgen
+
+def phi(x):
+    return (1 / math.sqrt(2 * math.pi)) * (scipy.integrate.quad(lambda t:\
+            math.exp(-((t ** 2) / 2)), 0, x))
 
 CU_OCC = 18
 CU_AV = 108
@@ -30,6 +37,7 @@ AG_OCC = 9
 BI_OCC = 9
 AG_BI_AV = 27
 I_AV_OCC = 54
+SPACE_GROUPS = 230
 
 arg_parser = argparse.ArgumentParser()
 
@@ -44,6 +52,11 @@ arg_parser.add_argument("-b", "--bins", type=int, default=1, help="Specifies\
 arg_parser.add_argument("-n", "--number", type=int, default=100,
                         help="Specifies how many configurations there will be\
                         in the generation. Default 100.")
+arg_parser.add_argument("-a", "--aggressiveness", type=float, default=3, help=\
+                        "Specifies how aggressively biased the binning will be\
+                        towards higher order space groups. Mathematically, this\
+                        is specifying a z-score as a cutoff on the curve\
+                        that is being sampled. Default 3.")
 
 args = arg_parser.parse_args()
 
@@ -95,6 +108,18 @@ for element in Elements:
         case _:
             print("Syntax error on lines 6 and 7.")
 
+# Calculate the distribution of space groups into bins on a normal
+# distribution
+Bins = [math.round(2 * SPACE_GROUPS *\
+                    phi((args.aggressiveness * i) / args.bins)) for i in\
+                    range(1, args.bins)]
+Bins[args.bins - 1] = SPACE_GROUPS
+
+# Create subdirectories for each bin
+parent_dir = os.path.dirname(args.index)
+for i in range(0, args.bins):
+    os.mkdir(os.path.join(parent_dir, str(i)))
+
 # Now generate the random config
 for i in range(args.number):
     AgBiOcc = random.choices(AgBiIndex, k=AG_OCC + BI_OCC)
@@ -107,19 +132,30 @@ for i in range(args.number):
     vasp_file.write(f"{i}\n")
     vasp_file.write(lattice_constant)
     vasp_file.writelines(LatticeMatrix)
-    vasp_file.write("{'Ag':<3}{'Bi':<3}{'Cu':<3}{'I':<3}\n")
+    vasp_file.write(f"{'Ag':<3}{'Bi':<3}{'Cu':<3}{'I':<3}\n")
     vasp_file.write(f"{AG_OCC:3d}{BI_OCC:3d}{CU_OCC:3d}{I_AV_OCC:3d}\n")
     vasp_file.writelines(AgOcc)
     vasp_file.writelines(BiOcc)
     vasp_file.writelines(CuOcc)
     vasp_file.writelines(IIndex)
-    vasp_file.close()
 
+    # Calculate and append spacegroup to the start of the file
     poscar = pymatgen.io.vasp.inputs.Poscar\
         .from_file(f"{i}.vasp", check_for_POTCAR=False, read_velocities=False)
 
     spacegroup = pymatgen.symmetry.analyzer.SpacegroupAnalyzer(poscar)\
         .get_space_group_number()
 
-    # TODO: Figure out the mathings for the bin distribution of spacegroups
-    # over the entire generation
+    vasp_file.seek(0)
+    vfline = vasp_file.readline()
+    vfline = vfline + f" ({spacegroup})"
+    vasp_file.seek(0)
+    vasp_file.writeline(vfline)
+    vasp_file.close()
+
+    # Now determine the proper bin and move file into that bin.
+    for j in range(0, args.bins):
+        if spacegroup <= Bins[j]:
+            new_path = os.path.join(parent_dir, j, f"{i}.vasp")
+            os.rename(f"{i}.vasp", new_path)
+            break
