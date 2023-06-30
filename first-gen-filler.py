@@ -23,13 +23,14 @@ import argparse
 import sys
 import os
 import random
-import scipy
+from scipy import integrate
 import math
-import pymatgen
+import pymatgen.io.vasp
+import pymatgen.symmetry.analyzer
 
-def phi(x):
-    return (1 / math.sqrt(2 * math.pi)) * (scipy.integrate.quad(lambda t:\
-            math.exp(-((t ** 2) / 2)), 0, x))
+def chi(x):
+    out = integrate.quad(lambda t: math.exp(-((t ** 2)/2)), 0, x) 
+    return out[0]
 
 CU_OCC = 18
 CU_AV = 108
@@ -38,10 +39,12 @@ BI_OCC = 9
 AG_BI_AV = 27
 I_AV_OCC = 54
 SPACE_GROUPS = 230
+R_TOL = 0.1
+A_TOL = 5.0
 
 arg_parser = argparse.ArgumentParser()
 
-arg_parser.add_argument("-i", "--index", type=argparse.FileType("r"),
+arg_parser.add_argument("-i", "--index",
                         required=True, help="provide \"path/to/INDEX.vasp\",\
                         the index file containing all atomic positions")
 arg_parser.add_argument("-b", "--bins", type=int, default=1, help="Specifies\
@@ -66,14 +69,18 @@ if (args.bins not in range(1, 231)) or (args.number <= 0) or\
     print("Make sure arguments are within bounds and that -n >= -b.")
     sys.exit(1)
 
+index_file = open(args.index, "r")
+
 # Read in INDEX.vasp into linetable and parse components
-index = args.index.readlines()
+index = index_file.readlines()
+
+index_file.close()
 
 lattice_constant = index[1]
 # A: 0, B: 1, C: 2
 LatticeMatrix = [index[i] for i in range(2, 5)]
 
-Elements = zip(index[5].split(), [int(x) for x in index[6].split()])
+Elements = [i for i in zip(index[5].split(), [int(x) for x in index[6].split()])]
 # Just making sure that the file is in the correct format :)
 assert len(Elements) == 3
 assert index[7].strip() == "Direct"
@@ -110,52 +117,76 @@ for element in Elements:
 
 # Calculate the distribution of space groups into bins on a normal
 # distribution
-Bins = [math.round(2 * SPACE_GROUPS *\
-                    phi((args.aggressiveness * i) / args.bins)) for i in\
-                    range(1, args.bins)]
-Bins[args.bins - 1] = SPACE_GROUPS
+if args.aggressiveness == 0:
+    Bins = [round((SPACE_GROUPS * i) / args.bins) for i in\
+            range(1, args.bins + 1)]
+else:
+    Bins = [round(SPACE_GROUPS *\
+                       ((chi((args.aggressiveness * i) / args.bins)) /\
+                        (chi(args.aggressiveness)))) for i in\
+                            range(1, args.bins + 1)]
+BinSize = [0] * args.bins
+MAX_BIN_SIZE = args.number // args.bins
 
-# Create subdirectories for each bin
+# Create subdirectories for each bin (will throw error if already exists)
 parent_dir = os.path.dirname(args.index)
 for i in range(0, args.bins):
     os.mkdir(os.path.join(parent_dir, str(i)))
 
 # Now generate the random config
-for i in range(args.number):
-    AgBiOcc = random.choices(AgBiIndex, k=AG_OCC + BI_OCC)
+i = 0
+attempt = 0
+while i < args.number:
+    print(attempt)
+    AgBiOcc = random.sample(AgBiIndex, k=AG_OCC + BI_OCC)
     AgOcc = AgBiOcc[0:AG_OCC]
     BiOcc = AgBiOcc[AG_OCC:AG_OCC + BI_OCC]
-    CuOcc = random.choices(CuIndex, k=CU_OCC)
+    CuOcc = random.sample(CuIndex, k=CU_OCC)
 
     # Create the new file and write its contents
-    vasp_file = open(f"{i}.vasp", "w")
+    file_path = os.path.join(parent_dir, f"{i}.vasp")
+    vasp_file = open(file_path, "w")
     vasp_file.write(f"{i}\n")
     vasp_file.write(lattice_constant)
     vasp_file.writelines(LatticeMatrix)
     vasp_file.write(f"{'Ag':<3}{'Bi':<3}{'Cu':<3}{'I':<3}\n")
-    vasp_file.write(f"{AG_OCC:3d}{BI_OCC:3d}{CU_OCC:3d}{I_AV_OCC:3d}\n")
+    vasp_file.write(f"{AG_OCC:2d}{BI_OCC:3d}{CU_OCC:3d}{I_AV_OCC:3d}\n")
+    vasp_file.write("Direct\n")
     vasp_file.writelines(AgOcc)
     vasp_file.writelines(BiOcc)
     vasp_file.writelines(CuOcc)
     vasp_file.writelines(IIndex)
+    vasp_file.close()
 
     # Calculate and append spacegroup to the start of the file
     poscar = pymatgen.io.vasp.inputs.Poscar\
-        .from_file(f"{i}.vasp", check_for_POTCAR=False, read_velocities=False)
+        .from_file(file_path, check_for_POTCAR=False, read_velocities=False)
 
-    spacegroup = pymatgen.symmetry.analyzer.SpacegroupAnalyzer(poscar)\
-        .get_space_group_number()
+    # TODO: figure out why this is only returning 1. Ran 40k+ attempts, only
+    # returned 1 ever. Am I just not scanning enough input or is there actually
+    # a problem with the system?
+    spacegroup = pymatgen.symmetry.analyzer.\
+        SpacegroupAnalyzer(poscar.structure, symprec=R_TOL,\
+                           angle_tolerance=A_TOL).get_space_group_number()
 
-    vasp_file.seek(0)
-    vfline = vasp_file.readline()
-    vfline = vfline + f" ({spacegroup})"
-    vasp_file.seek(0)
-    vasp_file.writeline(vfline)
+    vasp_file = open(file_path, "r")
+    vflines = vasp_file.readlines()
+    vflines[0] = vflines[0].strip() + f" ({spacegroup})\n"
+    vasp_file.close()
+    vasp_file = open(file_path, "w")
+    vasp_file.writelines(vflines)
     vasp_file.close()
 
     # Now determine the proper bin and move file into that bin.
     for j in range(0, args.bins):
         if spacegroup <= Bins[j]:
-            new_path = os.path.join(parent_dir, j, f"{i}.vasp")
-            os.rename(f"{i}.vasp", new_path)
+            if BinSize[j] < MAX_BIN_SIZE:
+                new_path = os.path.join(parent_dir, str(j), f"{i}.vasp")
+                os.rename(file_path, new_path)
+                BinSize[j] += 1
+                i += 1
+                break
+            os.remove(file_path)
             break
+    
+    attempt += 1
