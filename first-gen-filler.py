@@ -38,8 +38,9 @@ AG_OCC = 9
 BI_OCC = 9
 AG_BI_AV = 27
 I_AV_OCC = 54
-SPACE_GROUPS = 230
-R_TOL = 0.1
+# Will not go up to 230 because of the type of crystal that we have
+SPACE_GROUPS = 166
+R_TOL = 0.5
 A_TOL = 5.0
 
 arg_parser = argparse.ArgumentParser()
@@ -176,6 +177,9 @@ while i < args.number:
     vasp_file = open(file_path, "w")
     vasp_file.writelines(vflines)
     vasp_file.close()
+
+    if spacegroup > 1:
+        sys.exit()
 
     # Now determine the proper bin and move file into that bin.
     for j in range(0, args.bins):

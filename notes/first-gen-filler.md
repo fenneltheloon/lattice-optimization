@@ -76,3 +76,14 @@ where $a$, $i$, and $n$ mean the same the same thing, and $z$ this time refers t
 ## First Run
 Traceback: zip object has no length. Look at parsing the element names form the
 INDEX file
+
+## Generating symmetry
+
+Will need to verify symmetry for all occupied sites if doing manual generation
+
+Check $\text{Ag, Bi, Cu}$ in that order - if we can quit early we should
+
+### Test program specification
+Read the book that I just downloaded
+- Ethan will write a script that verifies the closedness of space group symmetry sets up to 166 (perhaps random sampling) - expect to invalidate a lot of groups
+- Victor will script for the Iodine lattice and see if we can recreate it using space group 166 rules
