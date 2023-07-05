@@ -2,6 +2,7 @@
 ## In the edge-biased case
 
 Compute the values of each $B_i$ for the following series where:
+
 $$B_i = \text{round}\left[\begin{cases}
   a\frac{\Chi\left(\frac{zi}{n}\right)}{\Chi(z)} & ,z > 0\\
   a\frac{i}{n} & ,z=0\\
