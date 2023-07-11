@@ -1,7 +1,6 @@
 # Spacegroup sym
 
 Top-level-list: each space group  
-(-) Next level list: sub spacegroups (a, b, c, etc.)
 - Plus vector(s): for each plus vector, duplicate all numbered symmetry
 operations and apply plus vector to each
 - Individual symmetry operations
