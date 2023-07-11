@@ -1,7 +1,7 @@
 import yaml
 import argparse
 import sympy
-import pdb
+import math
 
 x, y, z = sympy.symbols('x, y, z')
 
@@ -25,6 +25,7 @@ input = open(args.input, "r")
 input = yaml.safe_load(input)
 
 # Big ass for loop - determine symmetry operations
+passing_list = [1]
 for spacegroup in input.items():
     if spacegroup[0] == 1:
         print(f"Group {spacegroup[0]} is closed")
@@ -59,11 +60,11 @@ for spacegroup in input.items():
     # Now run each site through the same set of ops and see if we get the
     # same site back
     for op in symmetry_ops:
-        # TODO: make sure that this will result in N vectors (okay bc will run N times)
+        if op == sympy.Matrix([[x], [y], [z]]):
+            continue
         sym_op_alt = []
         compose = [(x, op[0]), (y, op[1]), (z, op[2])]
         for op2 in symmetry_ops:
-            breakpoint()
             new_vec = sympy.Matrix([op2[0].subs(compose), op2[1].subs(compose),
                                     op2[2].subs(compose)])
             sym_op_alt.append(new_vec)
@@ -80,14 +81,31 @@ for spacegroup in input.items():
                 op.simplify()
         # Now check to see if all operations are contained within the original
         # list
-        while isClosed:
-            for op2 in sym_op_alt:
-                if op2 not in symmetry_ops:
-                    isClosed = False
-                    break
+        for op2 in sym_op_alt:
+            if op2 not in symmetry_ops:
+                isClosed = False
+                break
 
-        # Print whether or not the space group is closed
-        if isClosed:
-            print(f"Group {spacegroup[0]} is closed")
+        if not isClosed:
+            break
+
+    # Print whether or not the space group is closed
+    if isClosed:
+        print(f"Group {spacegroup[0]} is closed")
+        if len(symmetry_ops) > 9:
+            print(f"Group {spacegroup[0]} fails")
         else:
-            print(f"Group {spacegroup[0]} is open")
+            if 9 % len(symmetry_ops) == 0:
+                print(f"Group {spacegroup[0]} passes")
+                passing_list.append(spacegroup[0])
+            else:
+                print(f"Group {spacegroup[0]} fails")
+    else:
+        print(f"Group {spacegroup[0]} is open")
+        if math.gcd(len(symmetry_ops), 9) != 1:
+            print(f"Group {spacegroup[0]} passes")
+            passing_list.append(spacegroup[0])
+        else:
+            print(f"Group {spacegroup[0]} fails")
+
+print(passing_list)

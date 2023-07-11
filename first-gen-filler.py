@@ -28,9 +28,11 @@ import math
 import pymatgen.io.vasp
 import pymatgen.symmetry.analyzer
 
+
 def chi(x):
-    out = integrate.quad(lambda t: math.exp(-((t ** 2)/2)), 0, x) 
+    out = integrate.quad(lambda t: math.exp(-((t ** 2)/2)), 0, x)
     return out[0]
+
 
 CU_OCC = 18
 CU_AV = 108
@@ -56,11 +58,11 @@ arg_parser.add_argument("-b", "--bins", type=int, default=1, help="Specifies\
 arg_parser.add_argument("-n", "--number", type=int, default=100,
                         help="Specifies how many configurations there will be\
                         in the generation. Default 100.")
-arg_parser.add_argument("-a", "--aggressiveness", type=float, default=3, help=\
-                        "Specifies how aggressively biased the binning will be\
-                        towards higher order space groups. Mathematically, this\
-                        is specifying a z-score as a cutoff on the curve\
-                        that is being sampled. Default 3.")
+arg_parser.add_argument("-a", "--aggressiveness", type=float, default=3,
+                        help="Specifies how aggressively biased the binning\
+                        will be towards higher order space groups.\
+                        Mathematically, this is specifying a z-score as a\
+                        cutoff on the curve that is being sampled. Default 3.")
 
 args = arg_parser.parse_args()
 
@@ -81,7 +83,8 @@ lattice_constant = index[1]
 # A: 0, B: 1, C: 2
 LatticeMatrix = [index[i] for i in range(2, 5)]
 
-Elements = [i for i in zip(index[5].split(), [int(x) for x in index[6].split()])]
+Elements = [i for i in zip(index[5].split(), [int(x) for x in index[6]
+                                              .split()])]
 # Just making sure that the file is in the correct format :)
 assert len(Elements) == 3
 assert index[7].strip() == "Direct"
@@ -119,13 +122,13 @@ for element in Elements:
 # Calculate the distribution of space groups into bins on a normal
 # distribution
 if args.aggressiveness == 0:
-    Bins = [round((SPACE_GROUPS * i) / args.bins) for i in\
+    Bins = [round((SPACE_GROUPS * i) / args.bins) for i in
             range(1, args.bins + 1)]
 else:
-    Bins = [round(SPACE_GROUPS *\
-                       ((chi((args.aggressiveness * i) / args.bins)) /\
-                        (chi(args.aggressiveness)))) for i in\
-                            range(1, args.bins + 1)]
+    Bins = [round(SPACE_GROUPS *
+                  ((chi((args.aggressiveness * i) / args.bins)) /
+                   (chi(args.aggressiveness)))) for i in
+            range(1, args.bins + 1)]
 BinSize = [0] * args.bins
 MAX_BIN_SIZE = args.number // args.bins
 
@@ -167,7 +170,7 @@ while i < args.number:
     # returned 1 ever. Am I just not scanning enough input or is there actually
     # a problem with the system?
     spacegroup = pymatgen.symmetry.analyzer.\
-        SpacegroupAnalyzer(poscar.structure, symprec=R_TOL,\
+        SpacegroupAnalyzer(poscar.structure, symprec=R_TOL,
                            angle_tolerance=A_TOL).get_space_group_number()
 
     vasp_file = open(file_path, "r")
@@ -192,5 +195,5 @@ while i < args.number:
                 break
             os.remove(file_path)
             break
-    
+
     attempt += 1
