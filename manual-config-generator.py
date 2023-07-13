@@ -2,6 +2,16 @@ import yaml
 import pymatgen
 import argparse
 import sys
+import sympy
+import random
+
+CU_OCC = 18
+CU_AV = 108
+AG_OCC = 9
+BI_OCC = 9
+AG_BI_AV = 27
+I_AV_OCC = 54
+x, y, z = sympy.symbols('x, y, z')
 
 parser = argparse.ArgumentParser(
         prog="Config Generator",
@@ -32,3 +42,110 @@ args = parser.parse_args()
 if args.number <= 0:
     print("Please input a positiv number of configurations to generate.")
     sys.exit(1)
+
+# Open index file
+index_file = open(args.index, "r")
+
+# Read in INDEX.vasp into linetable and parse components
+index = index_file.readlines()
+
+index_file.close()
+
+lattice_constant = index[1]
+# A: 0, B: 1, C: 2
+LatticeMatrix = [index[i] for i in range(2, 5)]
+
+Elements = [i for i in zip(index[5].split(), [int(x) for x in index[6]
+                                              .split()])]
+# Just making sure that the file is in the correct format :)
+assert len(Elements) == 3
+assert index[7].strip() == "Direct"
+
+line_offset = 8
+AgBiIndex = []
+CuIndex = []
+IIndex = []
+
+# Load up the lists that index the possible positions for each element and
+# check to make sure that each element has the correct number of spots
+for element in Elements:
+    match element[0]:
+        case "Ag" | "Bi":
+            assert element[1] == AG_BI_AV
+            for i in range(element[1]):
+                position = sympy.Matrix([float(j) for j in index[line_offset +
+                                                                 i].split()])
+                AgBiIndex.append(position)
+            print(f"Found {element[1]} positions for {element[0]}.")
+            line_offset += element[1]
+        case "Cu":
+            assert element[1] == CU_AV
+            for i in range(element[1]):
+                position = sympy.Matrix([float(j) for j in index[line_offset +
+                                                                 i].split()])
+                CuIndex.append(position)
+            print(f"Found {element[1]} positions for {element[0]}.")
+            line_offset += element[1]
+        case "I":
+            assert element[1] == I_AV_OCC
+            for i in range(element[1]):
+                position = sympy.Matrix([float(j) for j in index[line_offset +
+                                                                 i].split()])
+                IIndex.append(position)
+            print(f"Found {element[1]} positions for {element[0]}.")
+            line_offset += element[1]
+        case _:
+            print("Syntax error on lines 6 and 7.")
+
+# Open symmetries file
+symmetries = yaml.safe_load(open(args.symmetries, "r"))
+spacegroup = symmetries[args.spacegroup]  # this will look like [1: {}, 2: {}]
+
+symmetry_ops = [sympy.Matrix([x, y, z])]
+i = 1
+while i in spacegroup:
+    M_i = sympy.Matrix(spacegroup[i]["M"])
+    T_i = sympy.Matrix([0, 0, 0])
+    if "T" in spacegroup[i]:
+        T_i = sympy.Matrix(spacegroup[i]["T"])
+    symmetry_ops.append((M_i * symmetry_ops[0]) + T_i)
+    symopslen = len(symmetry_ops)
+    i += 1
+if "+" in spacegroup:
+    for vec in spacegroup["+"]:
+        vector = sympy.Matrix(vec)
+        for i in range(symopslen):
+            symmetry_ops.append(symmetry_ops[i] + vector)
+# Now we need to remove all whole number constants from each component
+for op in symmetry_ops:
+    for comp in op:
+        const = sum([term for term in comp.as_ordered_terms() if
+                    term.is_constant()])
+        if const > 0:
+            const = -sympy.floor(const)
+        else:
+            const = -sympy.ceiling(const)
+        comp = comp + const
+        op.simplify()
+
+# Loop for each configuration
+for i in args.number:
+    if len(symmetry_ops) == 3:
+        # Pick 3 orgins for Ag, 3 for Bi, and 6 for Cu
+        temp_Ag_Bi = AgBiIndex
+        Ag_Pos = []
+        j = 0
+        while j < 3:
+            origin = random.choice(temp_Ag_Bi)
+            points = [k.subs([(x, origin[0]), (y, origin[1]), (z, origin[2])])
+                      for k in symmetry_ops]
+            # TODO: we need to figure out how to calculate the modulo position
+            # for a site if the origin sits close to the border of the 3x3
+            # lattice. Will this break site symmetry?
+            if not all(x in temp_Ag_Bi for x in points):
+                continue
+            for k in points:
+                Ag_Pos.append(k)
+                temp_Ag_Bi.remove(k)
+                j += 1
+
