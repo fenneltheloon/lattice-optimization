@@ -1,7 +1,7 @@
 import pymatgen.io.vasp
 import pymatgen.symmetry.analyzer
 
-file_path = "I.vasp"
+file_path = "iodine.vasp"
 R_TOL = 0.5
 A_TOL = 5.0
 

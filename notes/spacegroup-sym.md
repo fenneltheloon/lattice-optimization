@@ -18,3 +18,9 @@ For each space group:
     multiple of the number of symmetry ops. If open, check to see if they are
     noncoprime. If that condition is met, then print the spacegroup subnumber
     to stdout.
+
+## next steps
+
+Okay so now we write the generation file
+- Make sure that we have a function that will take a subset of points that are mapped onto and see if we can get alternate origins
+
