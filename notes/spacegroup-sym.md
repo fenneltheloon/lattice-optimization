@@ -52,5 +52,29 @@ Repeat until we have all possible origin points for that three point pair
 
 Do this symbolically? if possible so we don't have to do it every time.
 
-143-161 are the only ones that we are looking at - 143-146 are 3 and 147-161
+143-161 are the only ones that we are looking at for Ag/Bi - 143-146 are 3 and 147-161
 are 6.
+
+Copper: Max is 221, all groups underneath with less than 18: 143-190, 195, 198  
+
+Not true - these are the only space groups that we will need for Ag/Bi. Copper
+will need to be able to use any space group it can - which is pretty much any
+group that has 18 points or less. Will need to write down some of the higher
+order space groups into the yaml file to process. And then make sure the Cu
+code is updated.
+
+Pick one of Ag/Bi/Cu to be the min space group, then all others will greater
+than or equal to as long as they are valid.
+
+If group is open and gcd of number of ops in formula and number of ops in
+spacegroup is not one AND space group has number of ops less than or equal to
+number of sites that will be filled by that sublattice, then can use.
+
+If number of space group symops not a factor of number of sites,
+then find smallest multiple that is greater than the number of sites, find how
+many overlap, and see if that divides evenly between the number of symmetric
+units.
+
+If it is, then multiply and make sure they do not overlap.
+
+Copper space group is 221, iodine is 225. Ag/Bi is 166.

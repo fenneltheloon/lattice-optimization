@@ -12,6 +12,13 @@ BI_OCC = 9
 AG_BI_AV = 27
 I_AV_OCC = 54
 x, y, z = sympy.symbols('x, y, z')
+POSSIBLE_AG_BI_SG = [i for i in range(143, 162)]
+POSSIBLE_CU_SG = [143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154,
+                  155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166,
+                  167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178,
+                  179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190,
+                  195, 198]
+ATTEMPT_CREATION_TIMEOUT = 100
 
 parser = argparse.ArgumentParser(
         prog="Config Generator",
@@ -98,54 +105,112 @@ for element in Elements:
             print("Syntax error on lines 6 and 7.")
 
 # Open symmetries file
-symmetries = yaml.safe_load(open(args.symmetries, "r"))
-spacegroup = symmetries[args.spacegroup]  # this will look like [1: {}, 2: {}]
+spacegroups = yaml.safe_load(open(args.symmetries, "r"))  # this will look like [1: {}, 2: {}]
 
-symmetry_ops = [sympy.Matrix([x, y, z])]
-i = 1
-while i in spacegroup:
-    M_i = sympy.Matrix(spacegroup[i]["M"])
-    T_i = sympy.Matrix([0, 0, 0])
-    if "T" in spacegroup[i]:
-        T_i = sympy.Matrix(spacegroup[i]["T"])
-    symmetry_ops.append((M_i * symmetry_ops[0]) + T_i)
-    symopslen = len(symmetry_ops)
-    i += 1
-if "+" in spacegroup:
-    for vec in spacegroup["+"]:
-        vector = sympy.Matrix(vec)
-        for i in range(symopslen):
-            symmetry_ops.append(symmetry_ops[i] + vector)
-# Now we need to remove all whole number constants from each component
-for op in symmetry_ops:
-    for comp in op:
-        const = sum([term for term in comp.as_ordered_terms() if
-                    term.is_constant()])
-        if const > 0:
-            const = -sympy.floor(const)
-        else:
-            const = -sympy.ceiling(const)
-        comp = comp + const
-        op.simplify()
+# Look at the spacegroup number. We need to pick an element that will be in
+# the minimum spacegroup, and then all other elements can be in equal or higher
+# spacegroup
 
-# Loop for each configuration
-for i in args.number:
-    if len(symmetry_ops) == 3:
-        # Pick 3 orgins for Ag, 3 for Bi, and 6 for Cu
-        temp_Ag_Bi = AgBiIndex
-        Ag_Pos = []
-        j = 0
-        while j < 3:
-            origin = random.choice(temp_Ag_Bi)
-            points = [k.subs([(x, origin[0]), (y, origin[1]), (z, origin[2])])
-                      for k in symmetry_ops]
-            # TODO: we need to figure out how to calculate the modulo position
-            # for a site if the origin sits close to the border of the 3x3
-            # lattice. Will this break site symmetry?
-            if not all(x in temp_Ag_Bi for x in points):
-                continue
-            for k in points:
-                Ag_Pos.append(k)
-                temp_Ag_Bi.remove(k)
-                j += 1
+# Ag = 0
+# Bi = 1
+# Cu = 2
+min_space_group_element = random.randrange(3)
 
+match min_space_group_element:
+    case 0:
+        AgSpacegroup = args.spacegroup
+        BiSpacegroup = random.choice(POSSIBLE_AG_BI_SG)
+        CuSpacegroup = random.choice(POSSIBLE_CU_SG)
+    case 1:
+        AgSpacegroup = random.choice(POSSIBLE_AG_BI_SG)
+        BiSpacegroup = args.spacegroup
+        CuSpacegroup = random.choice(POSSIBLE_CU_SG)
+    case 2:
+        AgSpacegroup = random.choice(POSSIBLE_AG_BI_SG)
+        BiSpacegroup = random.choice(POSSIBLE_AG_BI_SG)
+        CuSpacegroup = args.spacegroup
+
+# Randomly decide order of filling
+filling_order = random.shuffle([0, 1, 2])
+
+# Cycle through each and match statement
+unused_ag_sites = AgBiIndex
+unused_bi_sites = AgBiIndex
+unused_cu_sites = CuIndex
+while filling_order:
+    current_element = filling_order.pop()
+
+    match current_element:
+        case 0:
+            spacegroup = spacegroups[AgSpacegroup]
+            symmetry_ops = [sympy.Matrix([x, y, z])]
+            i = 1
+            while i in spacegroup:
+                M_i = sympy.Matrix(spacegroup[i]["M"])
+                T_i = sympy.Matrix([0, 0, 0])
+                if "T" in spacegroup[i]:
+                    T_i = sympy.Matrix(spacegroup[i]["T"])
+                symmetry_ops.append((M_i * symmetry_ops[0]) + T_i)
+                symopslen = len(symmetry_ops)
+                i += 1
+            if "+" in spacegroup:
+                for vec in spacegroup["+"]:
+                    vector = sympy.Matrix(vec)
+                    for i in range(symopslen):
+                        symmetry_ops.append(symmetry_ops[i] + vector)
+            # Now we need to remove all whole number constants from each
+            # component
+            for op in symmetry_ops:
+                for comp in op:
+                    const = sum([term for term in comp.as_ordered_terms() if
+                                term.is_constant()])
+                    if const > 0:
+                        const = -sympy.floor(const)
+                    else:
+                        const = -sympy.ceiling(const)
+                    comp = comp + const
+                    op.simplify()
+            # Num. of overlapped sites = Num. of groups needed * num. of ops in
+            # that group - num. of sites to fill.
+            multiplier = 1
+            while multiplier * len(symmetry_ops) > AG_OCC:
+                multiplier += 1
+            overlapping_sites = multiplier * len(symmetry_ops) - AG_OCC
+            # Now we will try and seed and grow each origin. If a collision or
+            # an error is detected, the attempt for the element is scrapped
+            # (((?))) and starts over from the top.
+            attempts = 0
+            while attempts < ATTEMPT_CREATION_TIMEOUT:
+                # Need to do this to make sure that the list of available sites
+                # is updated
+                unused_ag_sites = unused_bi_sites
+                failed = False
+                for i in range(multiplier):
+                    origin = random.choice(unused_ag_sites)
+                    for op in symmetry_ops:
+                        loc = op.subs([(x, origin[0]), (y, origin[1]),
+                                      (z, origin[2])]).simplify()
+                        # Need to make sure that all elements are less than 1
+                        for coord in loc:
+                            if coord >= 1:
+                                while coord >= 1:
+                                    coord -= 1
+                            elif coord < 0:
+                                while coord < 0:
+                                    coord += 1
+                        # Check to see if it's in the list
+                        if loc in unused_ag_sites:
+                            unused_ag_sites.remove(loc)
+                        else:
+                            failed = True
+                            break
+                    # TODO: now we need to check the overlapping sites, iterate
+                    # through all of the existing possible combinations of
+                    # overlapping points, find their possible orgins, and then
+                    # pick one of those potential origins and fill out the
+                    # remaining points if they are unoccupied. If they are
+                    # occupied, try the remaining possible origins before
+                    # declaring it failed and starting over.
+                if failed:
+                    attempts += 1
+                    continue
