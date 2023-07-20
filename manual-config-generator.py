@@ -4,6 +4,41 @@ import argparse
 import sys
 import sympy
 import random
+import itertools
+
+
+def listIsAllIdentical(list):
+    element = list[0]
+    check = True
+
+    for item in list:
+        if item != element:
+            check = False
+            break
+
+    return check
+
+
+# Needs to be a list of 3d-points of type sympy.Matrix (3d colun vector)
+def remove_whole_number_constants(list):
+    for point in list:
+        for coord in point:
+            const = sum([term for term in coord.as_ordered_terms() if
+                        term.is_constant()])
+            if const > 0:
+                const = -sympy.floor(const)
+            else:
+                const = -sympy.ceiling(const)
+            coord = coord + const
+        point.simplify()
+
+
+# Given an origin (seed) and a list of symmetry operations, returns the list
+# of Direct-mapped coords that generate from that origin.
+def growSeed(origin, symops):
+    # TODO
+    incomplete()
+
 
 CU_OCC = 18
 CU_AV = 108
@@ -105,7 +140,7 @@ for element in Elements:
             print("Syntax error on lines 6 and 7.")
 
 # Open symmetries file
-spacegroups = yaml.safe_load(open(args.symmetries, "r"))  # this will look like [1: {}, 2: {}]
+spacegroups = yaml.safe_load(open(args.symmetries, "r"))
 
 # Look at the spacegroup number. We need to pick an element that will be in
 # the minimum spacegroup, and then all other elements can be in equal or higher
@@ -137,6 +172,9 @@ filling_order = random.shuffle([0, 1, 2])
 unused_ag_sites = AgBiIndex
 unused_bi_sites = AgBiIndex
 unused_cu_sites = CuIndex
+used_ag_sites = []
+used_bi_sites = []
+used_cu_sites = []
 while filling_order:
     current_element = filling_order.pop()
 
@@ -144,6 +182,7 @@ while filling_order:
         case 0:
             spacegroup = spacegroups[AgSpacegroup]
             symmetry_ops = [sympy.Matrix([x, y, z])]
+            inv_symmetry_ops = symmetry_ops
             i = 1
             while i in spacegroup:
                 M_i = sympy.Matrix(spacegroup[i]["M"])
@@ -151,6 +190,7 @@ while filling_order:
                 if "T" in spacegroup[i]:
                     T_i = sympy.Matrix(spacegroup[i]["T"])
                 symmetry_ops.append((M_i * symmetry_ops[0]) + T_i)
+                inv_symmetry_ops.append((M_i.T * symmetry_ops[0]) - T_i)
                 symopslen = len(symmetry_ops)
                 i += 1
             if "+" in spacegroup:
@@ -160,16 +200,7 @@ while filling_order:
                         symmetry_ops.append(symmetry_ops[i] + vector)
             # Now we need to remove all whole number constants from each
             # component
-            for op in symmetry_ops:
-                for comp in op:
-                    const = sum([term for term in comp.as_ordered_terms() if
-                                term.is_constant()])
-                    if const > 0:
-                        const = -sympy.floor(const)
-                    else:
-                        const = -sympy.ceiling(const)
-                    comp = comp + const
-                    op.simplify()
+            remove_whole_number_constants(symmetry_ops)
             # Num. of overlapped sites = Num. of groups needed * num. of ops in
             # that group - num. of sites to fill.
             multiplier = 1
@@ -185,32 +216,76 @@ while filling_order:
                 # is updated
                 unused_ag_sites = unused_bi_sites
                 failed = False
-                for i in range(multiplier):
+                num_groups = 0
+                while num_groups < multiplier:
                     origin = random.choice(unused_ag_sites)
-                    for op in symmetry_ops:
-                        loc = op.subs([(x, origin[0]), (y, origin[1]),
-                                      (z, origin[2])]).simplify()
-                        # Need to make sure that all elements are less than 1
-                        for coord in loc:
-                            if coord >= 1:
-                                while coord >= 1:
-                                    coord -= 1
-                            elif coord < 0:
-                                while coord < 0:
-                                    coord += 1
+                    point_set = [op.subs([(x, origin[0]), (y, origin[1]),
+                                          (z, origin[2])]).simplify()
+                                 for op in symmetry_ops]
+                    remove_whole_number_constants(point_set)
+                    for loc in point_set:
                         # Check to see if it's in the list
                         if loc in unused_ag_sites:
                             unused_ag_sites.remove(loc)
+                            used_ag_sites.append(loc)
                         else:
                             failed = True
                             break
-                    # TODO: now we need to check the overlapping sites, iterate
+
+                    num_groups += 1
+                    # now we need to check the overlapping sites, iterate
                     # through all of the existing possible combinations of
                     # overlapping points, find their possible orgins, and then
                     # pick one of those potential origins and fill out the
                     # remaining points if they are unoccupied. If they are
                     # occupied, try the remaining possible origins before
                     # declaring it failed and starting over.
+                    if multiplier > 1 and overlapping_sites > 0:
+                        subsets = list(itertools.permutations(
+                                       used_ag_sites), overlapping_sites)
+                        num_subsets = len(subsets)
+                        possible_origins = []
+                        for i in range(num_subsets):
+                            # systematically assign each point in the subset to
+                            # a point in the set of inverse operations and try
+                            # to derive a matching origin that is within the
+                            # set of possible atomic sites.
+                            inv_op_subs = list(itertools.permuatations(
+                                               inv_symmetry_ops),
+                                               overlapping_sites)
+                            # Remove so that we don't get the original origin
+                            # in the set of new possible origins.
+                            inv_op_subs.remove(i)
+                            for inv_op_sub in inv_op_subs:
+                                # Need to now iterate through each point in
+                                # each subset and use it to find its possible
+                                # origin
+                                poss_origin = []
+                                for j in range(len(subsets[i])):
+                                    poss_origin.append(inv_op_sub[j].subs([
+                                        (x, subsets[i][j][0]),
+                                        (y, subsets[i][j][1]),
+                                        (z, subsets[i][j][2])]).simplify())
+                                # Check to see if all points in poss_origin are
+                                # the same
+                                remove_whole_number_constants(poss_origin)
+                                if listIsAllIdentical(poss_origin):
+                                    possible_origins.append(poss_origin[0])
+                        # If number of possible origins is 0, then mark as
+                        # failed and break
+                        if len(possible_origins) == 0:
+                            failed = True
+                            break
+                        elif len(possible_origins >= multiplier - num_groups):
+                            new_origins = random.sample(possible_origins,
+                                                        multiplier -
+                                                        num_groups)
+                            for org in new_origins:
+
+
+
+
+
                 if failed:
                     attempts += 1
                     continue
