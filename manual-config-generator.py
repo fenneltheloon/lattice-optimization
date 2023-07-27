@@ -240,50 +240,61 @@ while filling_order:
                     # remaining points if they are unoccupied. If they are
                     # occupied, try the remaining possible origins before
                     # declaring it failed and starting over.
-                    if multiplier > 1 and overlapping_sites > 0:
-                        subsets = list(itertools.permutations(
-                                       used_ag_sites), overlapping_sites)
-                        num_subsets = len(subsets)
-                        possible_origins = []
-                        for i in range(num_subsets):
-                            # systematically assign each point in the subset to
-                            # a point in the set of inverse operations and try
-                            # to derive a matching origin that is within the
-                            # set of possible atomic sites.
-                            inv_op_subs = list(itertools.permuatations(
-                                               inv_symmetry_ops),
-                                               overlapping_sites)
-                            # Remove so that we don't get the original origin
-                            # in the set of new possible origins.
-                            inv_op_subs.remove(i)
-                            for inv_op_sub in inv_op_subs:
-                                # Need to now iterate through each point in
-                                # each subset and use it to find its possible
-                                # origin
-                                poss_origin = []
-                                for j in range(len(subsets[i])):
-                                    poss_origin.append(inv_op_sub[j].subs([
-                                        (x, subsets[i][j][0]),
-                                        (y, subsets[i][j][1]),
-                                        (z, subsets[i][j][2])]).simplify())
-                                # Check to see if all points in poss_origin are
-                                # the same
-                                remove_whole_number_constants(poss_origin)
-                                if listIsAllIdentical(poss_origin):
-                                    possible_origins.append(poss_origin[0])
-                        # If number of possible origins is 0, then mark as
-                        # failed and break
-                        if len(possible_origins) == 0:
-                            failed = True
-                            break
-                        elif len(possible_origins >= multiplier - num_groups):
-                            new_origins = random.sample(possible_origins,
-                                                        multiplier -
-                                                        num_groups)
-                            for org in new_origins:
+                    if multiplier <= 1 and overlapping_sites <= 0:
+                        break
 
-
-
+                    subsets = list(itertools.permutations(
+                                   used_ag_sites), overlapping_sites)
+                    num_subsets = len(subsets)
+                    possible_origins = []
+                    for i in range(num_subsets):
+                        # systematically assign each point in the subset to
+                        # a point in the set of inverse operations and try
+                        # to derive a matching origin that is within the
+                        # set of possible atomic sites.
+                        inv_op_subs = list(itertools.permuatations(
+                                           inv_symmetry_ops),
+                                           overlapping_sites)
+                        # Remove so that we don't get the original origin
+                        # in the set of new possible origins.
+                        inv_op_subs.remove(i)
+                        for inv_op_sub in inv_op_subs:
+                            # Need to now iterate through each point in
+                            # each subset and use it to find its possible
+                            # origin
+                            poss_origin = []
+                            for j in range(len(subsets[i])):
+                                poss_origin.append(inv_op_sub[j].subs([
+                                    (x, subsets[i][j][0]),
+                                    (y, subsets[i][j][1]),
+                                    (z, subsets[i][j][2])]).simplify())
+                            # Check to see if all points in poss_origin are
+                            # the same
+                            remove_whole_number_constants(poss_origin)
+                            if listIsAllIdentical(poss_origin):
+                                possible_origins.append(poss_origin[0])
+                    # If number of possible origins is 0, then mark as
+                    # failed and break
+                    if len(possible_origins) == 0:
+                        failed = True
+                        break
+                    elif len(possible_origins >= multiplier - num_groups):
+                        new_origins = random.sample(possible_origins,
+                                                    multiplier -
+                                                    num_groups)
+                        for org in new_origins:
+                            new_point_set = [op.subs([(x, origin[0]),
+                                                      (y, origin[1]),
+                                                      (z, origin[2])])
+                                             .simplify()
+                                             for op in symmetry_ops]
+                            remove_whole_number_constants(new_point_set)
+                            for loc in new_point_set:
+                                if loc not in unused_ag_sites and\
+                                        loc not in used_ag_sites:
+                                    failed = True
+                                    break
+                                elif loc in 
 
 
                 if failed:

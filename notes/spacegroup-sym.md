@@ -78,3 +78,40 @@ units.
 If it is, then multiply and make sure they do not overlap.
 
 Copper space group is 221, iodine is 225. Ag/Bi is 166.
+
+## Algorithm for inverse
+
+Read in index file, spacegroup yml
+
+Read in all of the elements into sympy format
+
+Decide filling order, randomize the spacegroup
+
+Perform the filling operation for each spacegroup:
+1. get the spacegroup from the YML file into sympy form
+1. Figure out how many sites are needed left to fill, how many need to overlap. 
+
+```
+overlapping_sites = multiplier * len(symmetry_ops) - AG_OCC
+
+```
+1. Fill the first symmetry set
+    - We need to be careful about checking the tolerances on each of the
+        coordinates when doing this. Too strict and nothing will ever register,
+        too loose and we'll get error accumulating.
+1. Get all of the possible subsets of that set and subsets of the symmetry operations
+with `itertools.permuations`
+1. Permute the subsets together such that all possible pairs are generated
+    except for the ones that coincide indices (so we don't get the same set of
+    points back out.) For each of these pairs:
+    1. Call a function that calculates a potential origin for these points
+    On success, return point. On failure, return code.
+    1. If no successes, fail the attempt and skip to the next. If there is
+        a success, generate all of the points corresponding to that origin
+        and ensure that they are all valid.
+    1. Continue until we have the `multiplier` number of sites filled and
+        number of sites filled is what it's supposed to be.
+    1. Copy and save list as the final for element going into poscar, then if
+        Ag/Bi, copy use sites over to other element.
+1. Write the POSCAR file. Repeat for as many configurations as requested.
+
