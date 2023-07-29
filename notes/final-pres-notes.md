@@ -6,3 +6,8 @@
 - Be specific on the math on the math slide
 - Thank you to UT and NSF at the end.
 - Spherical Cluster Method estimated energy (predicted, accurate to 5 meV/atom)
+
+## Second round
+- Fix double arrows on flowchart
+- Add legend to dot diagram
+- Fix title and end slide institutions
