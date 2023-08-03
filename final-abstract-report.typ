@@ -65,6 +65,6 @@ DOI: 10.1021/jacs.1c00495
 #super[2] G. Kresse, J. Furthmüller,
 _Efficiency of ab-initio total energy calculations for metals and semiconductors using a plane-wave basis set._
 Computational Materials Science Volume 6 Issue 1 (1996) 15-50, 0927-0256,
-https://doi.org/10.1016/0927-0256(96)00008-0.
+DOI: 10.1016/0927-0256(96)00008-0.
 
 #super[3] Glass et al., _USPEX – evolutionary crystal structure prediction._ Computer Physics Communications 175 (2006) 713-720 DOI: 10.1016/j.cpc.2006.07.020
