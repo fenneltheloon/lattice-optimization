@@ -11,7 +11,7 @@ Ethan Meltzer#super[a], Mr. Victor T. Barone#super[b], Dr. Sanjay V. Khare#super
 #super[b] University of Toledo Department of Physics]
 
 #align(center)[*Abstract*]
-Cu#sub[2]AgBiI#sub[6] is a new thin-film solar cell site-disordered semiconductor candidate synthesized by the University of Liverpool in 2021.#super[1] This research aims to find minimum-energy configurations of its crystal structure using an evolutionary algorithmic approach and VASP _ab-initio_ calculations of lattice energy to determine suitability. We employ the USPEX#super[2] structure prediction algorithim as well as our novel approach which focuses on the site-disordered nature of the material and on intentionally biasing the first generation of the evolutionary process towards lower-energy configurations by selecting for higher-order space groups. By comparing both of these methods, we aim to both reinforce our confidence in finding the global minimum-energy configuration and evaluate the effectiveness of our novel evolutionary approach.
+Cu#sub[2]AgBiI#sub[6] is a new thin-film solar cell site-disordered semiconductor candidate synthesized by the University of Liverpool in 2021.#super[1] This research aims to find minimum-energy configurations of its crystal structure using an evolutionary algorithmic approach and VASP _ab-initio_ calculations of lattice energy to determine suitability.#super[2] We employ the USPEX#super[3] structure prediction algorithim as well as our novel approach which focuses on the site-disordered nature of the material and on intentionally biasing the first generation of the evolutionary process towards lower-energy configurations by selecting for higher-order space groups. By comparing both of these methods, we aim to both reinforce our confidence in finding the global minimum-energy configuration and evaluate the effectiveness of our novel evolutionary approach.
 
 #align(center)[*Background*]
 This new material is a promising candiate for thin-film solar cell applications due to its high absorption coefficient of $1.0 * 10^5 space #text[cm]^(-1)$ in visible light, ideally competing with or outperforming current-gen materials like CdTe or Si-based cell technology.#super[1] In order to engineer high-efficiency solar cells using this material, further research into the internal crystal structure of the material beyond what the initial expirimental inquiry that verified stoichiometry and the positions of lattice sites using X-ray powder diffraction techniques is necessary.
@@ -58,8 +58,13 @@ This project is currently unfinished. The immediate next steps include preparing
 All code and media generated for the purposes of this project, including the files mentioned above are available in a public github repository located at this link: https://github.com/captainbanaynays/lattice-optimization
 
 #align(center)[*References*]
-#super[1] Sansom et al. _Highly Absorbing Lead-Free Semiconductor Cu#sub[2]AgBiI#sub[6] for Photovoltaic Applications from the Quaternary CuI−AgI−BiI#sub[3] Phase Space._
+#super[1] Sansom et al., _Highly Absorbing Lead-Free Semiconductor Cu#sub[2]AgBiI#sub[6] for Photovoltaic Applications from the Quaternary CuI−AgI−BiI#sub[3] Phase Space._
 Journal of the American Chemical Society 2021 143 (10), 3983-3992
 DOI: 10.1021/jacs.1c00495
 
-#super[2] Glass et al. _USPEX – evolutionary crystal structure prediction._ Computer Physics Communications 175 (2006) 713-720 DOI: 10.1016/j.cpc.2006.07.020
+#super[2] G. Kresse, J. Furthmüller,
+_Efficiency of ab-initio total energy calculations for metals and semiconductors using a plane-wave basis set._
+Computational Materials Science Volume 6 Issue 1 (1996) 15-50, 0927-0256,
+https://doi.org/10.1016/0927-0256(96)00008-0.
+
+#super[3] Glass et al., _USPEX – evolutionary crystal structure prediction._ Computer Physics Communications 175 (2006) 713-720 DOI: 10.1016/j.cpc.2006.07.020
